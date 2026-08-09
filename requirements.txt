@@ -1,0 +1,13 @@
+pandas
+polars
+rapidfuzz
+jellyfish
+duckdb
+dbt-core
+dbt-duckdb
+streamlit
+anthropic
+python-dotenv
+requests
+faker
+pytest
