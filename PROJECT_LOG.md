@@ -119,17 +119,44 @@ verified independently before any business logic was written.
 
 ## Phase 1 — Data Sourcing
 
-*(To be filled in as this phase is completed)*
+**Goal:** Source a real, live sanctions dataset and parse it into a clean,
+structured format usable for downstream matching.
 
-**Goal:**
-
-**Steps taken:**
+**Steps taken (so far):**
+1. Located OFAC's Sanctions List Service direct XML endpoint
+   (`sanctionslistservice.ofac.treas.gov/.../SDN.XML`), confirmed via
+   OFAC's own technical documentation that requests require a `User-Agent`
+   header or they return a 403 error.
+2. Wrote `src/ingestion/download_sdn.py` — downloads the live SDN XML file
+   (~28MB, 19,199 entities) into `data/raw/sdn.xml`.
+3. Wrote `src/ingestion/parse_sdn.py` — parses the XML using Python's
+   built-in `xml.etree.ElementTree`, handling the XML namespace
+   (`{https://sanctionslistservice.ofac.treas.gov/...}`) required to
+   correctly locate elements.
+4. Extracted both primary names and all aliases (`akaList`) per entity,
+   flattening into one row per screenable name — 43,775 total names from
+   19,199 entities (~1.3 aliases per entity on average).
+5. Wrote the result to `data/raw/sdn_names.csv` with columns:
+   `entity_uid, name, name_type (primary/alias), sdn_type`.
 
 **How it was validated:**
+- Entry count parsed (19,199) matched the `<Record_Count>` declared in the
+  XML file header exactly.
+- Spot-checked the first entity (AEROCARIBBEAN AIRLINES, UID 36) against
+  the raw XML by eye — name, type, and alias matched exactly.
+- CSV output manually inspected with `head` — correct structure, proper
+  linkage between primary names and aliases via `entity_uid`.
 
 **Key design decisions:**
+- Flattened to one row per name (not one row per entity) because the
+  fuzzy matcher needs to screen against every name variant, not just the
+  primary name — an alias match is just as important as a primary match
+  in real screening.
+- Used Python's built-in XML library rather than an external dependency,
+  since `ElementTree` was sufficient for this file's structure.
 
-**Outcome:**
+**Outcome:** A real, current (as of 08/07/2026) sanctions dataset, fully
+parsed and ready to feed into dbt in a clean CSV format.
 
 ---
 
